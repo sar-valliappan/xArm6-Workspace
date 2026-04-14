@@ -10,4 +10,6 @@ log/
 *.log
 
 # Keep workspace scripts/docs tracked, but not vendored upstream repo clone
-src/xarm_ros2/
+# Allow custom packages, exclude cloned upstream
+src/xarm_ros2/**
+!src/xarm_ros2/xarm_pick_place/
