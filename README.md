@@ -81,11 +81,17 @@ From the workspace root:
   cd /Users/svalliappan/xarm6_ws
   XARM_RUN_DEMO=1 ./start.sh
 
+To include the xArm gripper model and run open/close commands in the demo:
+
+  cd /Users/svalliappan/xarm6_ws
+  XARM_ADD_GRIPPER=true XARM_RUN_DEMO=1 ./start.sh
+
 Then open in browser:
 
   http://localhost:6080/vnc.html?autoconnect=1&resize=remote
 
 You should see xArm6 move in RViz through a pick-and-place joint sequence.
+With gripper enabled, the demo also sends close/open gripper commands.
 
 Why this mode works:
 
@@ -114,6 +120,18 @@ Gazebo mode may crash on some ARM64 environments due to gz_ros2_control runtime 
   XARM_SIM_MODE=gazebo ./start.sh
 
 If Gazebo mode is unstable, use default fake mode.
+
+## Environment Flags
+
+- XARM_SIM_MODE
+  - fake (default): stable MoveIt/RViz test mode
+  - gazebo: attempt Gazebo mode (may crash on Apple Silicon)
+- XARM_RUN_DEMO
+  - 0 (default): launch stack only
+  - 1: auto-run pick-and-place node after startup
+- XARM_ADD_GRIPPER
+  - false (default): arm only
+  - true: include standard xArm gripper model and controller
 
 Known limitation on Apple Silicon:
 
