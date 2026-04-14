@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Build artifacts
+build/
+install/
+log/
+
+# Docker/dev artifacts
+*.log
+
+# Keep workspace scripts/docs tracked, but not vendored upstream repo clone
+src/xarm_ros2/
