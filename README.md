@@ -71,6 +71,41 @@ Notes:
 - start.sh currently defaults to fake mode for stability on ARM64
 - This keeps desktop and MoveIt workflow reliable on macOS
 
+## Run Pick-and-Place Demo (Visible Motion in RViz)
+
+The most reliable way on Apple Silicon is to run fake mode and launch the demo
+inside the same simulation container.
+
+From the workspace root:
+
+  cd /Users/svalliappan/xarm6_ws
+  XARM_RUN_DEMO=1 ./start.sh
+
+Then open in browser:
+
+  http://localhost:6080/vnc.html?autoconnect=1&resize=remote
+
+You should see xArm6 move in RViz through a pick-and-place joint sequence.
+
+Why this mode works:
+
+- The controller action server runs in the same container session as the demo node
+- Gazebo physics is optional and currently unstable on ARM64 in this stack
+
+If you want to run the node manually (without auto-demo):
+
+1. Start simulation:
+
+     ./start.sh
+
+2. In a second terminal, run:
+
+     docker compose run --rm xarm6_sim bash -lc "cd /home/ws && source /opt/ros/humble/setup.bash && colcon build --packages-select xarm_pick_place && source install/setup.bash && ros2 run xarm_pick_place pick_place_node.py"
+
+Note: launching the node in a separate one-off container may not always see the
+live trajectory action server from the first container. Use XARM_RUN_DEMO=1 for
+the most consistent behavior.
+
 ## Optional: force Gazebo mode
 
 Gazebo mode may crash on some ARM64 environments due to gz_ros2_control runtime issues.
@@ -79,6 +114,11 @@ Gazebo mode may crash on some ARM64 environments due to gz_ros2_control runtime 
   XARM_SIM_MODE=gazebo ./start.sh
 
 If Gazebo mode is unstable, use default fake mode.
+
+Known limitation on Apple Silicon:
+
+- Gazebo (gz) may start and then crash (segfault/exit 137) in this environment.
+- RViz fake mode remains the recommended test path for motion validation.
 
 ## Daily workflow
 

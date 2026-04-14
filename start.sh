@@ -10,6 +10,8 @@ set -e
 # Default to a stable launch mode on ARM64.
 # Use XARM_SIM_MODE=gazebo to force full Gazebo simulation.
 XARM_SIM_MODE=${XARM_SIM_MODE:-fake}
+# Set to 1 to auto-run pick-and-place demo after startup.
+XARM_RUN_DEMO=${XARM_RUN_DEMO:-0}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -30,6 +32,8 @@ if [ -n "$STALE_CONTAINERS" ]; then
 fi
 
 docker compose run --rm --publish 6080:6080 \
+       -e XARM_SIM_MODE="$XARM_SIM_MODE" \
+       -e XARM_RUN_DEMO="$XARM_RUN_DEMO" \
     xarm6_sim bash -c '
         set -e
         cd /home/ws
@@ -82,6 +86,15 @@ docker compose run --rm --publish 6080:6080 \
                            ros2 launch xarm_moveit_config xarm6_moveit_gazebo.launch.py add_gripper:=false gz_type:=gz
                     else
                            echo "--> Launching xArm6 MoveIt 2 (fake mode, stable)..."
-                           ros2 launch xarm_moveit_config xarm6_moveit_fake.launch.py add_gripper:=false
+                           ros2 launch xarm_moveit_config xarm6_moveit_fake.launch.py add_gripper:=false &
+                           LAUNCH_PID=$!
+
+                           if [ "$XARM_RUN_DEMO" = "1" ]; then
+                                  echo "--> Waiting for controllers, then running pick-place demo..."
+                                  sleep 8
+                                  ros2 run xarm_pick_place pick_place_node.py || true
+                           fi
+
+                           wait $LAUNCH_PID
                     fi
     '
