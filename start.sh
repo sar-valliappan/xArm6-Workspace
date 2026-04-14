@@ -10,6 +10,8 @@ set -e
 # Default to a stable launch mode on ARM64.
 # Use XARM_SIM_MODE=gazebo to force full Gazebo simulation.
 XARM_SIM_MODE=${XARM_SIM_MODE:-fake}
+# Set to true to include the standard xArm gripper in the robot model.
+XARM_ADD_GRIPPER=${XARM_ADD_GRIPPER:-false}
 # Set to 1 to auto-run pick-and-place demo after startup.
 XARM_RUN_DEMO=${XARM_RUN_DEMO:-0}
 
@@ -33,6 +35,7 @@ fi
 
 docker compose run --rm --publish 6080:6080 \
        -e XARM_SIM_MODE="$XARM_SIM_MODE" \
+       -e XARM_ADD_GRIPPER="$XARM_ADD_GRIPPER" \
        -e XARM_RUN_DEMO="$XARM_RUN_DEMO" \
     xarm6_sim bash -c '
         set -e
@@ -83,10 +86,10 @@ docker compose run --rm --publish 6080:6080 \
 
                     if [ "$XARM_SIM_MODE" = "gazebo" ]; then
                            echo "--> Launching xArm6 MoveIt 2 + Gazebo (GZ Sim)..."
-                           ros2 launch xarm_moveit_config xarm6_moveit_gazebo.launch.py add_gripper:=false gz_type:=gz
+                           ros2 launch xarm_moveit_config xarm6_moveit_gazebo.launch.py add_gripper:=$XARM_ADD_GRIPPER gz_type:=gz
                     else
                            echo "--> Launching xArm6 MoveIt 2 (fake mode, stable)..."
-                           ros2 launch xarm_moveit_config xarm6_moveit_fake.launch.py add_gripper:=false &
+                           ros2 launch xarm_moveit_config xarm6_moveit_fake.launch.py add_gripper:=$XARM_ADD_GRIPPER &
                            LAUNCH_PID=$!
 
                            if [ "$XARM_RUN_DEMO" = "1" ]; then

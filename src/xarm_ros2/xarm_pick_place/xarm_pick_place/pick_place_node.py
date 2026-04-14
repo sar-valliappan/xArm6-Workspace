@@ -12,14 +12,26 @@ class PickAndPlaceNode(Node):
     def __init__(self):
         super().__init__('pick_and_place_node')
         self.joint_names = ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6']
+        self.gripper_joint_name = ['drive_joint']
         self.trajectory_client = ActionClient(
             self,
             FollowJointTrajectory,
             '/xarm6_traj_controller/follow_joint_trajectory',
         )
+        self.gripper_client = ActionClient(
+            self,
+            FollowJointTrajectory,
+            '/xarm_gripper_traj_controller/follow_joint_trajectory',
+        )
         self.get_logger().info('Waiting for trajectory action server...')
         if not self.trajectory_client.wait_for_server(timeout_sec=15.0):
             raise RuntimeError('xarm6 trajectory action server is not available')
+
+        self.has_gripper = self.gripper_client.wait_for_server(timeout_sec=3.0)
+        if self.has_gripper:
+            self.get_logger().info('Gripper action server detected')
+        else:
+            self.get_logger().warn('Gripper action server not available, skipping gripper commands')
         self.get_logger().info('Pick and place node ready')
 
     def send_joint_goal(self, positions, move_time=3.0):
@@ -51,6 +63,34 @@ class PickAndPlaceNode(Node):
             return False
         return True
 
+    def send_gripper_goal(self, position, move_time=1.5):
+        if not self.has_gripper:
+            return False
+
+        goal = FollowJointTrajectory.Goal()
+        goal.trajectory.joint_names = self.gripper_joint_name
+
+        point = JointTrajectoryPoint()
+        point.positions = [float(position)]
+        point.time_from_start = Duration(seconds=float(move_time)).to_msg()
+        goal.trajectory.points = [point]
+
+        send_future = self.gripper_client.send_goal_async(goal)
+        rclpy.spin_until_future_complete(self, send_future)
+        goal_handle = send_future.result()
+        if goal_handle is None or not goal_handle.accepted:
+            self.get_logger().error('Gripper goal rejected')
+            return False
+
+        result_future = goal_handle.get_result_async()
+        rclpy.spin_until_future_complete(self, result_future)
+        result = result_future.result()
+        if result is None or result.result.error_code != 0:
+            code = result.result.error_code if result else -1
+            self.get_logger().error('Gripper execution failed, error_code=%d', code)
+            return False
+        return True
+
     def run(self):
         # Joint-space waypoints to make visible motion in RViz fake mode.
         home = [0.0, -0.75, 0.0, 0.75, 0.0, 0.0]
@@ -60,14 +100,17 @@ class PickAndPlaceNode(Node):
         place_down = [0.55, -1.05, 0.32, 1.15, -0.20, 0.10]
 
         self.get_logger().info('=== Starting Pick and Place Sequence ===')
+        self.send_gripper_goal(0.85, move_time=1.0)  # open
         self.send_joint_goal(home, move_time=3.0)
         self.send_joint_goal(pick_approach, move_time=3.0)
         self.send_joint_goal(pick_down, move_time=2.5)
-        self.get_logger().info('Closing gripper (placeholder)')
+        self.get_logger().info('Closing gripper')
+        self.send_gripper_goal(0.0, move_time=1.2)   # close
         self.send_joint_goal(pick_approach, move_time=2.5)
         self.send_joint_goal(place_approach, move_time=3.5)
         self.send_joint_goal(place_down, move_time=2.5)
-        self.get_logger().info('Opening gripper (placeholder)')
+        self.get_logger().info('Opening gripper')
+        self.send_gripper_goal(0.85, move_time=1.2)  # open
         self.send_joint_goal(place_approach, move_time=2.5)
         self.send_joint_goal(home, move_time=3.0)
         self.get_logger().info('=== Pick and Place Complete ===')
