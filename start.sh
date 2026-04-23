@@ -14,6 +14,8 @@ XARM_SIM_MODE=${XARM_SIM_MODE:-fake}
 XARM_ADD_GRIPPER=${XARM_ADD_GRIPPER:-false}
 # Set to 1 to auto-run pick-and-place demo after startup.
 XARM_RUN_DEMO=${XARM_RUN_DEMO:-0}
+# Set to 1 to require per-step operator confirmation in the demo node.
+XARM_STEP_CONFIRM=${XARM_STEP_CONFIRM:-0}
 # Physical-machine safety flags are forwarded into the container for the node.
 XARM_PHYSICAL_MODE=${XARM_PHYSICAL_MODE:-0}
 XARM_PHYSICAL_CONFIRM=${XARM_PHYSICAL_CONFIRM:-}
@@ -40,6 +42,7 @@ docker compose run --rm --publish 6080:6080 \
        -e XARM_SIM_MODE="$XARM_SIM_MODE" \
        -e XARM_ADD_GRIPPER="$XARM_ADD_GRIPPER" \
        -e XARM_RUN_DEMO="$XARM_RUN_DEMO" \
+               -e XARM_STEP_CONFIRM="$XARM_STEP_CONFIRM" \
        -e XARM_PHYSICAL_MODE="$XARM_PHYSICAL_MODE" \
        -e XARM_PHYSICAL_CONFIRM="$XARM_PHYSICAL_CONFIRM" \
     xarm6_sim bash -c '
