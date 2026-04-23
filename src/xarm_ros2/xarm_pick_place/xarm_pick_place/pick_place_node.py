@@ -18,6 +18,7 @@ class PickAndPlaceNode(Node):
         super().__init__('pick_and_place_node')
         self.physical_mode = os.getenv('XARM_PHYSICAL_MODE', '0').lower() in ('1', 'true', 'yes')
         self.physical_confirm = os.getenv('XARM_PHYSICAL_CONFIRM', '').strip()
+        self.step_confirm = os.getenv('XARM_STEP_CONFIRM', '0').lower() in ('1', 'true', 'yes')
         if self.physical_mode and self.physical_confirm != 'I_UNDERSTAND_RISKS':
             raise RuntimeError(
                 'Physical mode requires XARM_PHYSICAL_CONFIRM=I_UNDERSTAND_RISKS before any motion is allowed'
@@ -50,6 +51,22 @@ class PickAndPlaceNode(Node):
         else:
             self.get_logger().warning('Gripper action server not available, skipping gripper commands')
         self.get_logger().info('Pick and place node ready')
+
+    def confirm_step(self, label):
+        if not self.step_confirm:
+            return True
+
+        prompt = f"\n[SAFETY] About to execute step '{label}'. Type YES to continue: "
+        try:
+            user_value = input(prompt).strip()
+        except EOFError:
+            self.get_logger().error('No interactive input available for safety confirmation')
+            return False
+
+        if user_value != 'YES':
+            self.get_logger().error("Step '%s' aborted by operator", label)
+            return False
+        return True
 
     def _waypoint_limits(self):
         if self.physical_mode:
@@ -199,25 +216,57 @@ class PickAndPlaceNode(Node):
         fine_move_time = 4.0 if self.physical_mode else 2.5
 
         self.get_logger().info('=== Starting Pick and Place Sequence ===')
+        if not self.confirm_step('pre-open gripper'):
+            return
         self.send_gripper_goal(0.80, move_time=1.5)  # open
+
+        if not self.confirm_step('move home'):
+            return
         self.send_joint_goal(home, move_time=move_time)
         self.log_end_effector_pose('Home')
+
+        if not self.confirm_step('move pick approach'):
+            return
         self.send_joint_goal(pick_approach, move_time=move_time)
         self.log_end_effector_pose('Pick approach')
+
+        if not self.confirm_step('move pick down'):
+            return
         self.send_joint_goal(pick_down, move_time=fine_move_time)
         self.log_end_effector_pose('Pick down')
+
         self.get_logger().info('Closing gripper')
+        if not self.confirm_step('close gripper'):
+            return
         self.send_gripper_goal(0.15, move_time=1.5)  # close lightly
+
+        if not self.confirm_step('retreat from pick'):
+            return
         self.send_joint_goal(pick_approach, move_time=fine_move_time)
         self.log_end_effector_pose('Post-grasp retreat')
+
+        if not self.confirm_step('move place approach'):
+            return
         self.send_joint_goal(place_approach, move_time=move_time)
         self.log_end_effector_pose('Place approach')
+
+        if not self.confirm_step('move place down'):
+            return
         self.send_joint_goal(place_down, move_time=fine_move_time)
         self.log_end_effector_pose('Place down')
+
         self.get_logger().info('Opening gripper')
+        if not self.confirm_step('open gripper'):
+            return
         self.send_gripper_goal(0.80, move_time=1.5)  # open
+
+        if not self.confirm_step('retreat from place'):
+            return
         self.send_joint_goal(place_approach, move_time=fine_move_time)
         self.log_end_effector_pose('Post-place retreat')
+
+        if not self.confirm_step('return home'):
+            return
         self.send_joint_goal(home, move_time=move_time)
         self.log_end_effector_pose('Final home')
         self.get_logger().info('=== Pick and Place Complete ===')
