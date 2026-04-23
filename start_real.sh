@@ -32,6 +32,51 @@ if [[ "$XARM_PHYSICAL_CONFIRM" != "I_UNDERSTAND_RISKS" ]]; then
   exit 1
 fi
 
+check_tcp_port() {
+  local host="$1"
+  local port="$2"
+
+  # BSD nc (macOS) and GNU nc use different timeout flags; try both.
+  if nc -z -w 2 "$host" "$port" >/dev/null 2>&1; then
+    return 0
+  fi
+  if nc -z -G 2 "$host" "$port" >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
+}
+
+echo "--> Prechecking robot network reachability..."
+
+PING_OK=0
+if ping -c 1 -W 1000 "$ROBOT_IP" >/dev/null 2>&1; then
+  PING_OK=1
+elif ping -c 1 "$ROBOT_IP" >/dev/null 2>&1; then
+  PING_OK=1
+fi
+
+if [[ "$PING_OK" != "1" ]]; then
+  echo "ERROR: Robot IP $ROBOT_IP is not reachable from this host (ping failed)."
+  echo "Fix network first (same subnet, cable/Wi-Fi routing, robot powered on), then retry."
+  exit 1
+fi
+
+PORT_OK=0
+for port in 30001 502; do
+  if check_tcp_port "$ROBOT_IP" "$port"; then
+    PORT_OK=1
+    break
+  fi
+done
+
+if [[ "$PORT_OK" != "1" ]]; then
+  echo "ERROR: Robot IP $ROBOT_IP responds to ping but control ports are not reachable (30001/502)."
+  echo "Check robot control mode, firewall/VLAN rules, and whether remote control is enabled."
+  exit 1
+fi
+
+echo "--> Network precheck passed (IP reachable and control port open)."
+
 echo ""
 echo "=============================================="
 echo "  xArm6 REAL HARDWARE MODE"
@@ -61,8 +106,11 @@ docker compose run --rm \
     set -euo pipefail
     cd /home/ws
 
+    # ROS setup scripts may read optional unset vars; disable nounset while sourcing.
+    set +u
     source /opt/ros/humble/setup.bash
     [ -f /home/ws/install/setup.bash ] && source /home/ws/install/setup.bash
+    set -u
 
     echo "--> Launching xArm6 realmove stack..."
     ros2 launch xarm_moveit_config xarm6_moveit_realmove.launch.py \
