@@ -133,6 +133,31 @@ If Gazebo mode is unstable, use default fake mode.
   - false (default): arm only
   - true: include standard xArm gripper model and controller
 
+## Physical Machine Safety
+
+The pick-and-place node now includes a conservative physical-mode interlock.
+Use it only after verifying the robot is clear of obstacles and ready to move.
+
+Before any motion on hardware, set:
+
+  XARM_PHYSICAL_MODE=1
+  XARM_PHYSICAL_CONFIRM=I_UNDERSTAND_RISKS
+
+Recommended physical test command:
+
+  XARM_PHYSICAL_MODE=1 XARM_PHYSICAL_CONFIRM=I_UNDERSTAND_RISKS XARM_ADD_GRIPPER=true XARM_RUN_DEMO=1 ./start.sh
+
+Safety behavior in physical mode:
+
+- Uses conservative joint-space waypoints close to a home posture
+- Limits per-step joint motion
+- Slows every move significantly
+- Refuses to move unless confirmation is provided explicitly
+- Uses a light gripper close position instead of a full crush-close
+
+Do not use Gazebo mode for the first physical test. Start in fake/RViz mode or
+validate the node on the bench with the robot clear of objects and people.
+
 Known limitation on Apple Silicon:
 
 - Gazebo (gz) may start and then crash (segfault/exit 137) in this environment.
