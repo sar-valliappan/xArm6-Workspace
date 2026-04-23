@@ -14,6 +14,9 @@ XARM_SIM_MODE=${XARM_SIM_MODE:-fake}
 XARM_ADD_GRIPPER=${XARM_ADD_GRIPPER:-false}
 # Set to 1 to auto-run pick-and-place demo after startup.
 XARM_RUN_DEMO=${XARM_RUN_DEMO:-0}
+# Physical-machine safety flags are forwarded into the container for the node.
+XARM_PHYSICAL_MODE=${XARM_PHYSICAL_MODE:-0}
+XARM_PHYSICAL_CONFIRM=${XARM_PHYSICAL_CONFIRM:-}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -37,6 +40,8 @@ docker compose run --rm --publish 6080:6080 \
        -e XARM_SIM_MODE="$XARM_SIM_MODE" \
        -e XARM_ADD_GRIPPER="$XARM_ADD_GRIPPER" \
        -e XARM_RUN_DEMO="$XARM_RUN_DEMO" \
+       -e XARM_PHYSICAL_MODE="$XARM_PHYSICAL_MODE" \
+       -e XARM_PHYSICAL_CONFIRM="$XARM_PHYSICAL_CONFIRM" \
     xarm6_sim bash -c '
         set -e
         cd /home/ws
