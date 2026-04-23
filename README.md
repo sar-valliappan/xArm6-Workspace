@@ -71,6 +71,25 @@ Notes:
 - start.sh currently defaults to fake mode for stability on ARM64
 - This keeps desktop and MoveIt workflow reliable on macOS
 
+## Real Hardware Run (xArm6)
+
+For physical robot runs, use the dedicated safety launcher:
+
+  cd /Users/svalliappan/xarm6_ws
+  ROBOT_IP=192.168.1.240 XARM_PHYSICAL_CONFIRM=I_UNDERSTAND_RISKS ./start_real.sh
+
+What `start_real.sh` does:
+
+- Launches `xarm6_moveit_realmove.launch.py`
+- Waits for arm/gripper trajectory action servers
+- Requires explicit operator confirmation before running the demo node
+- Enables physical safety interlock and step-by-step confirmation in the node
+
+Optional flags:
+
+- `XARM_ADD_GRIPPER=true|false` (default `true`)
+- `XARM_STEP_CONFIRM=1|0` (default `1`, asks before each motion block)
+
 ## Run Pick-and-Place Demo (Visible Motion in RViz)
 
 The most reliable way on Apple Silicon is to run fake mode and launch the demo
