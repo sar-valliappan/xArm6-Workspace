@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import time
+import threading
 from xarm.wrapper import XArmAPI
 
 arm = XArmAPI('192.168.1.209')
@@ -8,6 +9,31 @@ time.sleep(0.5)
 arm.set_mode(0)
 arm.set_state(0)
 arm.reset(wait=True)
+
+stop_monitor = threading.Event()
+
+def monitor(duration=60, interval=0.1):
+    print(f"{'Time':>6} | {'J1':>7} {'J2':>7} {'J3':>7} {'J4':>7} {'J5':>7} {'J6':>7}")
+    print("-" * 60)
+    start = time.time()
+    while time.time() - start < duration and not stop_monitor.is_set():
+        t = time.time() - start
+        code_a, angles  = arm.get_servo_angle()
+        code_s, states  = arm.get_joint_states()
+        code_t, torques = arm.get_joints_torque()
+        if code_a == 0:
+            print(f"[Angles  ] {t:5.1f}s | " + " ".join(f"{a:7.2f}" for a in angles))
+        if code_s == 0:
+            vels = states[1]
+            print(f"[Velocity] {t:5.1f}s | " + " ".join(f"{v:7.2f}" for v in vels))
+        if code_t == 0:
+            print(f"[Torque  ] {t:5.1f}s | " + " ".join(f"{t:7.2f}" for t in torques))
+        print()
+        time.sleep(interval)
+
+monitor_thread = threading.Thread(target=monitor, kwargs={'duration': 60, 'interval': 0.1})
+monitor_thread.daemon = True
+monitor_thread.start()
 
 def adaptive_grip(open_pos=350, close_speed=500):
     """
@@ -81,3 +107,5 @@ arm.set_servo_angle(angle=[-160, -40, -4, 0, 0, 0], wait=True)
 
 # go back to home
 arm.move_gohome(wait=True)
+stop_monitor.set()
+monitor_thread.join()
