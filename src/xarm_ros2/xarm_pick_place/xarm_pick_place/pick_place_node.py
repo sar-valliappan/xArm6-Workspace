@@ -205,71 +205,60 @@ class PickAndPlaceNode(Node):
                 'Physical mode enabled. Motion is heavily constrained and requires manual confirmation.'
             )
 
-        # Conservative joint-space waypoints designed to stay close to a safe posture.
-        home = [0.0, -0.55, 0.0, 0.55, 0.0, 0.0]
-        pick_approach = [0.08, -0.70, 0.12, 0.70, -0.05, 0.0]
-        pick_down = [0.08, -0.80, 0.16, 0.82, -0.05, 0.0]
-        place_approach = [0.18, -0.66, 0.10, 0.66, -0.05, 0.05]
-        place_down = [0.18, -0.76, 0.14, 0.78, -0.05, 0.05]
+        # Minimal safety test sequence requested:
+        # 1) open gripper, 2) move arm very little, 3) close gripper.
+        tiny_move = [0.03, -0.55, 0.02, 0.55, 0.0, 0.0]
 
-        move_time = 5.0 if self.physical_mode else 3.0
-        fine_move_time = 4.0 if self.physical_mode else 2.5
+        move_time = 4.0 if self.physical_mode else 2.0
 
-        self.get_logger().info('=== Starting Pick and Place Sequence ===')
+        self.get_logger().info('=== Starting Minimal Safety Motion Sequence ===')
         if not self.confirm_step('pre-open gripper'):
             return
         self.send_gripper_goal(0.80, move_time=1.5)  # open
 
-        if not self.confirm_step('move home'):
+        if not self.confirm_step('tiny arm move'):
             return
-        self.send_joint_goal(home, move_time=move_time)
-        self.log_end_effector_pose('Home')
-
-        if not self.confirm_step('move pick approach'):
-            return
-        self.send_joint_goal(pick_approach, move_time=move_time)
-        self.log_end_effector_pose('Pick approach')
-
-        if not self.confirm_step('move pick down'):
-            return
-        self.send_joint_goal(pick_down, move_time=fine_move_time)
-        self.log_end_effector_pose('Pick down')
+        self.send_joint_goal(tiny_move, move_time=move_time)
+        self.log_end_effector_pose('Tiny move')
 
         self.get_logger().info('Closing gripper')
         if not self.confirm_step('close gripper'):
             return
         self.send_gripper_goal(0.15, move_time=1.5)  # close lightly
 
-        if not self.confirm_step('retreat from pick'):
-            return
-        self.send_joint_goal(pick_approach, move_time=fine_move_time)
-        self.log_end_effector_pose('Post-grasp retreat')
+        self.get_logger().info('=== Minimal Safety Motion Complete ===')
 
-        if not self.confirm_step('move place approach'):
-            return
-        self.send_joint_goal(place_approach, move_time=move_time)
-        self.log_end_effector_pose('Place approach')
-
-        if not self.confirm_step('move place down'):
-            return
-        self.send_joint_goal(place_down, move_time=fine_move_time)
-        self.log_end_effector_pose('Place down')
-
-        self.get_logger().info('Opening gripper')
-        if not self.confirm_step('open gripper'):
-            return
-        self.send_gripper_goal(0.80, move_time=1.5)  # open
-
-        if not self.confirm_step('retreat from place'):
-            return
-        self.send_joint_goal(place_approach, move_time=fine_move_time)
-        self.log_end_effector_pose('Post-place retreat')
-
-        if not self.confirm_step('return home'):
-            return
-        self.send_joint_goal(home, move_time=move_time)
-        self.log_end_effector_pose('Final home')
-        self.get_logger().info('=== Pick and Place Complete ===')
+        # Previous full pick-place sequence intentionally commented out.
+        # if not self.confirm_step('retreat from pick'):
+        #     return
+        # self.send_joint_goal(pick_approach, move_time=fine_move_time)
+        # self.log_end_effector_pose('Post-grasp retreat')
+        #
+        # if not self.confirm_step('move place approach'):
+        #     return
+        # self.send_joint_goal(place_approach, move_time=move_time)
+        # self.log_end_effector_pose('Place approach')
+        #
+        # if not self.confirm_step('move place down'):
+        #     return
+        # self.send_joint_goal(place_down, move_time=fine_move_time)
+        # self.log_end_effector_pose('Place down')
+        #
+        # self.get_logger().info('Opening gripper')
+        # if not self.confirm_step('open gripper'):
+        #     return
+        # self.send_gripper_goal(0.80, move_time=1.5)  # open
+        #
+        # if not self.confirm_step('retreat from place'):
+        #     return
+        # self.send_joint_goal(place_approach, move_time=fine_move_time)
+        # self.log_end_effector_pose('Post-place retreat')
+        #
+        # if not self.confirm_step('return home'):
+        #     return
+        # self.send_joint_goal(home, move_time=move_time)
+        # self.log_end_effector_pose('Final home')
+        # self.get_logger().info('=== Pick and Place Complete ===')
 
 
 def main():
