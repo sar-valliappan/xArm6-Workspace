@@ -90,7 +90,7 @@ Optional flags:
 - `XARM_ADD_GRIPPER=true|false` (default `true`)
 - `XARM_STEP_CONFIRM=1|0` (default `1`, asks before each motion block)
 
-## Run Pick-and-Place Demo (Visible Motion in RViz)
+## Run Demo Node (RViz)
 
 The most reliable way on Apple Silicon is to run fake mode and launch the demo
 inside the same simulation container.
@@ -109,8 +109,13 @@ Then open in browser:
 
   http://localhost:6080/vnc.html?autoconnect=1&resize=remote
 
-You should see xArm6 move in RViz through a pick-and-place joint sequence.
-With gripper enabled, the demo also sends close/open gripper commands.
+Current node behavior is intentionally minimal for safer bring-up:
+
+- Open gripper
+- Perform a very small joint-space move
+- Close gripper lightly
+
+With gripper enabled, the demo sends both open and close gripper commands.
 
 Why this mode works:
 
@@ -147,14 +152,14 @@ If Gazebo mode is unstable, use default fake mode.
   - gazebo: attempt Gazebo mode (may crash on Apple Silicon)
 - XARM_RUN_DEMO
   - 0 (default): launch stack only
-  - 1: auto-run pick-and-place node after startup
+  - 1: auto-run demo node after startup
 - XARM_ADD_GRIPPER
   - false (default): arm only
   - true: include standard xArm gripper model and controller
 
 ## Physical Machine Safety
 
-The pick-and-place node now includes a conservative physical-mode interlock.
+The demo node includes a physical-mode interlock.
 Use it only after verifying the robot is clear of obstacles and ready to move.
 
 Before any motion on hardware, set:
@@ -168,10 +173,9 @@ Recommended physical test command:
 
 Safety behavior in physical mode:
 
-- Uses conservative joint-space waypoints close to a home posture
-- Limits per-step joint motion
-- Slows every move significantly
+- Runs only a minimal sequence (open gripper, tiny move, close gripper)
 - Refuses to move unless confirmation is provided explicitly
+- Supports step-by-step operator confirmation when enabled
 - Uses a light gripper close position instead of a full crush-close
 
 Do not use Gazebo mode for the first physical test. Start in fake/RViz mode or
@@ -181,6 +185,21 @@ Known limitation on Apple Silicon:
 
 - Gazebo (gz) may start and then crash (segfault/exit 137) in this environment.
 - RViz fake mode remains the recommended test path for motion validation.
+
+## Direct SDK Script (Real Robot)
+
+For direct xArm SDK testing outside ROS, use [simple_xarm_movements.py](simple_xarm_movements.py).
+This script performs a simple Cartesian pick-and-place style sequence and then returns home.
+
+Before running:
+
+- Update the robot IP inside the script if needed.
+- Ensure the workcell is clear and E-stop procedures are in place.
+
+Run from workspace root:
+
+  cd /Users/svalliappan/xarm6_ws
+  python3 simple_xarm_movements.py
 
 ## Daily workflow
 
