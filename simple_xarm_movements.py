@@ -48,12 +48,16 @@ def adaptive_grip(open_pos=350, close_speed=500):
 
     return gripped_width
 
+
+# open gripper
+arm.set_gripper_position(500, wait=True)
+
 # move to pick the object
 arm.set_servo_angle(angle=[0, -30, 0, 0, 0, 0], wait=True)
 arm.set_servo_angle(angle=[-120, -30, 0, 0, 0, 0], wait=True)
 arm.set_servo_angle(angle=[-120, -18, -4, 0, 0, 0], wait=True)
 
-gripped_width = adaptive_grip(open_pos=350, close_speed=500)
+gripped_width = adaptive_grip(open_pos=500, close_speed=500)
 
 if gripped_width == 0:
     print("[Abort] Nothing gripped. Returning home.")
