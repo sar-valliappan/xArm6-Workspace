@@ -1,29 +1,35 @@
-# xArm6 ROS 2 Simulation (macOS Apple Silicon)
+# xArm6 Workspace
 
-This workspace runs xArm6 with ROS 2 Humble, MoveIt 2, and browser-based desktop access through Docker.
+This workspace supports two independent workflows:
 
-## Quick Start
+1. ROS 2 workflow (Docker-based): simulation, MoveIt, RViz, and ROS demos.
+2. Python SDK workflow (no Docker required): direct robot control scripts.
 
-Run these from the workspace root:
+## Do You Need Docker For Python SDK?
 
-  cd /Users/svalliappan/xarm6_ws
-  chmod +x build.sh start.sh && ./build.sh
-  ./start.sh
+No. Docker is only required for the ROS 2 workflow.
 
-Open in browser:
+Use Docker when you run ROS 2 tools and launch files.
+Do not use Docker when running scripts in python_sdk.
 
-  http://localhost:6080/vnc.html?autoconnect=1&resize=remote
+## Repository Organization
 
-## What you get
+### ROS 2 assets
 
-- ROS 2 Humble toolchain in Docker
-- xArm ROS 2 packages
-- MoveIt 2 planning setup
-- Browser desktop at http://localhost:6080
+- ROS packages: src/xarm_ros2
+- ROS launcher/build scripts: build.sh, start.sh, start_real.sh
+- ROS container files: Dockerfile, docker-compose.yml
+- ROS build artifacts: build, install, log
 
-## Prerequisites
+### Python SDK assets
 
-Install on host macOS:
+- Scripts: python_sdk/simple_xarm_movements.py, python_sdk/xarm_torque_movements.py
+
+---
+
+## ROS 2 Section (Docker)
+
+### Prerequisites
 
 1. Docker Desktop (Apple Silicon)
 2. Git
@@ -34,233 +40,144 @@ Recommended Docker resources:
 - Memory: 8 GB minimum, 12 to 16 GB preferred
 - CPU: 4 cores minimum
 
-## Repository scripts
+### Installation
 
-- build.sh: one-time setup and build
-- start.sh: run simulation desktop and launch stack
-
-## First-time installation
-
-From the workspace root:
-
-  cd /Users/svalliappan/xarm6_ws
-  chmod +x build.sh start.sh
-  ./build.sh
+```bash
+cd /Users/svalliappan/xarm6_ws
+chmod +x build.sh start.sh start_real.sh
+./build.sh
+```
 
 What build.sh does:
 
-1. Clones xarm_ros2 into src/xarm_ros2 if missing
-2. Builds Docker image xarm6_sim
-3. Applies ARM64-compatible xarm_gazebo patch
-4. Runs rosdep install in container
-5. Builds workspace with colcon
+1. Clones xarm_ros2 into src/xarm_ros2 if missing.
+2. Builds Docker image xarm6_sim.
+3. Applies ARM64-compatible xarm_gazebo patch.
+4. Runs rosdep install in container.
+5. Builds the workspace with colcon.
 
-## Run the system
+### Execution
 
-From the workspace root:
+Start simulation (default fake mode):
 
-  cd /Users/svalliappan/xarm6_ws
-  ./start.sh
+```bash
+cd /Users/svalliappan/xarm6_ws
+./start.sh
+```
 
-Then open in browser:
+Open browser desktop:
 
-  http://localhost:6080/vnc.html?autoconnect=1&resize=remote
+```text
+http://localhost:6080/vnc.html?autoconnect=1&resize=remote
+```
 
-Notes:
+Auto-run ROS demo:
 
-- start.sh currently defaults to fake mode for stability on ARM64
-- This keeps desktop and MoveIt workflow reliable on macOS
+```bash
+cd /Users/svalliappan/xarm6_ws
+XARM_RUN_DEMO=1 ./start.sh
+```
 
-## Real Hardware Run (xArm6)
+Enable gripper in demo:
 
-For physical robot runs, use the dedicated safety launcher:
+```bash
+cd /Users/svalliappan/xarm6_ws
+XARM_ADD_GRIPPER=true XARM_RUN_DEMO=1 ./start.sh
+```
 
-  cd /Users/svalliappan/xarm6_ws
-  ROBOT_IP=192.168.1.240 XARM_PHYSICAL_CONFIRM=I_UNDERSTAND_RISKS ./start_real.sh
+Run real hardware launcher with safety confirmation:
 
-What `start_real.sh` does:
+```bash
+cd /Users/svalliappan/xarm6_ws
+ROBOT_IP=192.168.1.240 XARM_PHYSICAL_CONFIRM=I_UNDERSTAND_RISKS ./start_real.sh
+```
 
-- Launches `xarm6_moveit_realmove.launch.py`
-- Waits for arm/gripper trajectory action servers
-- Requires explicit operator confirmation before running the demo node
-- Enables physical safety interlock and step-by-step confirmation in the node
+### Environment flags
 
-Optional flags:
+- XARM_SIM_MODE=fake|gazebo (default: fake)
+- XARM_RUN_DEMO=0|1 (default: 0)
+- XARM_ADD_GRIPPER=false|true (default: false)
+- XARM_STEP_CONFIRM=1|0 (default in physical flow: 1)
 
-- `XARM_ADD_GRIPPER=true|false` (default `true`)
-- `XARM_STEP_CONFIRM=1|0` (default `1`, asks before each motion block)
+### Troubleshooting
 
-## Run Demo Node (RViz)
+Check noVNC mapping:
 
-The most reliable way on Apple Silicon is to run fake mode and launch the demo
-inside the same simulation container.
+```bash
+docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Ports}}'
+```
 
-From the workspace root:
+Stop stale run container:
 
-  cd /Users/svalliappan/xarm6_ws
-  XARM_RUN_DEMO=1 ./start.sh
+```bash
+docker ps -q --filter "name=xarm6_ws-xarm6_sim-run" | xargs -I {} docker stop {}
+```
 
-To include the xArm gripper model and run open/close commands in the demo:
+Clean and rebuild ROS artifacts:
 
-  cd /Users/svalliappan/xarm6_ws
-  XARM_ADD_GRIPPER=true XARM_RUN_DEMO=1 ./start.sh
+```bash
+rm -rf build install log
+./build.sh
+```
 
-Then open in browser:
+Check noVNC endpoint:
 
-  http://localhost:6080/vnc.html?autoconnect=1&resize=remote
+```bash
+curl -I http://localhost:6080/vnc.html
+```
 
-Current node behavior is intentionally minimal for safer bring-up:
+Known Apple Silicon limitation:
 
-- Open gripper
-- Perform a very small joint-space move
-- Close gripper lightly
-
-With gripper enabled, the demo sends both open and close gripper commands.
-
-Why this mode works:
-
-- The controller action server runs in the same container session as the demo node
-- Gazebo physics is optional and currently unstable on ARM64 in this stack
-
-If you want to run the node manually (without auto-demo):
-
-1. Start simulation:
-
-     ./start.sh
-
-2. In a second terminal, run:
-
-     docker compose run --rm xarm6_sim bash -lc "cd /home/ws && source /opt/ros/humble/setup.bash && colcon build --packages-select xarm_pick_place && source install/setup.bash && ros2 run xarm_pick_place pick_place_node.py"
-
-Note: launching the node in a separate one-off container may not always see the
-live trajectory action server from the first container. Use XARM_RUN_DEMO=1 for
-the most consistent behavior.
-
-## Optional: force Gazebo mode
-
-Gazebo mode may crash on some ARM64 environments due to gz_ros2_control runtime issues.
-
-  cd /Users/svalliappan/xarm6_ws
-  XARM_SIM_MODE=gazebo ./start.sh
-
-If Gazebo mode is unstable, use default fake mode.
-
-## Environment Flags
-
-- XARM_SIM_MODE
-  - fake (default): stable MoveIt/RViz test mode
-  - gazebo: attempt Gazebo mode (may crash on Apple Silicon)
-- XARM_RUN_DEMO
-  - 0 (default): launch stack only
-  - 1: auto-run demo node after startup
-- XARM_ADD_GRIPPER
-  - false (default): arm only
-  - true: include standard xArm gripper model and controller
-
-## Physical Machine Safety
-
-The demo node includes a physical-mode interlock.
-Use it only after verifying the robot is clear of obstacles and ready to move.
-
-Before any motion on hardware, set:
-
-  XARM_PHYSICAL_MODE=1
-  XARM_PHYSICAL_CONFIRM=I_UNDERSTAND_RISKS
-
-Recommended physical test command:
-
-  XARM_PHYSICAL_MODE=1 XARM_PHYSICAL_CONFIRM=I_UNDERSTAND_RISKS XARM_ADD_GRIPPER=true XARM_RUN_DEMO=1 ./start.sh
-
-Safety behavior in physical mode:
-
-- Runs only a minimal sequence (open gripper, tiny move, close gripper)
-- Refuses to move unless confirmation is provided explicitly
-- Supports step-by-step operator confirmation when enabled
-- Uses a light gripper close position instead of a full crush-close
-
-Do not use Gazebo mode for the first physical test. Start in fake/RViz mode or
-validate the node on the bench with the robot clear of objects and people.
-
-Known limitation on Apple Silicon:
-
-- Gazebo (gz) may start and then crash (segfault/exit 137) in this environment.
-- RViz fake mode remains the recommended test path for motion validation.
-
-## Direct SDK Script (Real Robot)
-
-For direct xArm SDK testing outside ROS, use [simple_xarm_movements.py](simple_xarm_movements.py).
-This script performs a simple Cartesian pick-and-place style sequence and then returns home.
-
-Before running:
-
-- Update the robot IP inside the script if needed.
-- Ensure the workcell is clear and E-stop procedures are in place.
-
-Run from workspace root:
-
-  cd /Users/svalliappan/xarm6_ws
-  python3 simple_xarm_movements.py
-
-## Daily workflow
-
-1. Start Docker Desktop
-2. Run start.sh
-3. Open browser URL above
-4. Stop with Ctrl+C in terminal
-
-## Troubleshooting
-
-### localhost:6080 does not open
-
-Run:
-
-  docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Ports}}'
-
-You should see container port mapping 0.0.0.0:6080->6080/tcp.
-
-If another stale run is holding ports:
-
-  docker ps -q --filter "name=xarm6_ws-xarm6_sim-run" | xargs -I {} docker stop {}
-
-Then restart:
-
-  ./start.sh
-
-### Build fails in colcon
-
-The workspace is configured to build without symlink install to avoid bind-mount symlink issues on macOS Docker.
-If needed, clean and rebuild from host:
-
-  rm -rf build install log
-  ./build.sh
-
-### Rebuild image after Dockerfile changes
-
-  docker compose build xarm6_sim
-
-### Check noVNC endpoint from terminal
-
-  curl -I http://localhost:6080/vnc.html
-
-Expected response includes HTTP/1.1 200 OK.
-
-**"No such package" errors**
-- Make sure you cloned with --recursive: `git submodule update --init --recursive`
+- Gazebo (gz) may crash in this environment.
+- Fake mode with RViz is the most reliable path.
 
 ---
 
-## Architecture Notes (why it's set up this way)
+## Python SDK Section (No Docker)
 
-| Problem | Cause | Solution used |
-|---|---|---|
-| Classic Gazebo missing | `ros-humble-gazebo-ros` has no ARM64 apt package | Ignition Fortress + ros_gz bridge |
-| RViz crashes (GLXContext) | XQuartz on macOS can't provide OpenGL 3.3 | VNC desktop with Mesa software rendering |
-| move_group segfault | ARM64 bug in rclcpp CallbackGroup destructor | `LD_PRELOAD=libatomic.so.1` |
-| chown permission errors | Git pack files cloned as root | `|| true` in setup.sh, fix ownership before clone |
+### Prerequisites
+
+1. Python 3
+2. xArm Python SDK installed in your active Python environment
+3. Network access to the robot controller
+
+### Installation
+
+```bash
+python3 -m pip install xarm-python-sdk
+```
+
+### Execution
+
+Run simple sequence script:
+
+```bash
+cd /Users/svalliappan/xarm6_ws
+python3 python_sdk/simple_xarm_movements.py
+```
+
+Run torque-based script:
+
+```bash
+cd /Users/svalliappan/xarm6_ws
+python3 python_sdk/xarm_torque_movements.py
+```
+
+Before running SDK scripts:
+
+- Set the correct robot IP in the script.
+- Ensure the workcell is clear.
+- Confirm E-stop and safety procedures are ready.
 
 ---
 
-## Software Versions
+## Recommended Daily Flow
+
+1. Validate planning and motion behavior in the ROS 2 section first.
+2. Run direct hardware script tests in the Python SDK section.
+3. Use only one control path at a time (ROS control or direct SDK).
+
+## ROS 2 Software Versions
 
 | Software | Version |
 |---|---|
