@@ -2,8 +2,30 @@
 
 This workspace supports two independent workflows:
 
-1. ROS 2 workflow (Docker-based): simulation, MoveIt, RViz, and ROS demos.
-2. Python SDK workflow (no Docker required): direct robot control scripts.
+1. Python SDK workflow (no Docker required): direct robot control scripts.
+2. ROS 2 workflow (Docker-based): simulation, MoveIt, RViz, and ROS demos.
+
+## Workflow Capabilities
+
+### Python SDK workflow can do
+
+- Run direct robot scripts without ROS or Docker.
+- Execute pick-and-place using explicit joint servo-angle commands.
+- Execute pick-and-place using velocity control with PID-style adjustment.
+- Rapidly iterate hardware behavior in small standalone scripts.
+
+Current scripts:
+
+- python_sdk/simple_xarm_movements.py: pick-and-place flow driven by staged servo-angle moves.
+- python_sdk/xarm_torque_movements.py: pick-and-place flow using velocity behavior and PID control logic.
+
+### ROS 2 workflow can do
+
+- Launch a containerized ROS 2 Humble environment.
+- Run xArm MoveIt planning and RViz-based bring-up.
+- Run simulated workflows (fake mode by default, optional Gazebo mode).
+- Run integrated ROS demo flows and real-hardware launch pipeline with safety gating.
+
 
 ## Repository Organization
 
