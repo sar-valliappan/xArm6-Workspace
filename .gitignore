@@ -2,15 +2,15 @@
 .DS_Store
 
 # Build artifacts
-build/
-install/
-log/
+ros2/build/
+ros2/install/
+ros2/log/
 
 # Docker/dev artifacts
 *.log
 
 # Keep workspace scripts/docs tracked, but not vendored upstream repo clone
 # Track only custom package under xarm_ros2
-src/xarm_ros2/*
-!src/xarm_ros2/xarm_pick_place/
-!src/xarm_ros2/xarm_pick_place/**
+ros2/src/xarm_ros2/*
+!ros2/src/xarm_ros2/xarm_pick_place/
+!ros2/src/xarm_ros2/xarm_pick_place/**

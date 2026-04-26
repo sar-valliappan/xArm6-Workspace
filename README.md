@@ -16,10 +16,11 @@ Do not use Docker when running scripts in python_sdk.
 
 ### ROS 2 assets
 
-- ROS packages: src/xarm_ros2
-- ROS launcher/build scripts: build.sh, start.sh, start_real.sh
-- ROS container files: Dockerfile, docker-compose.yml
-- ROS build artifacts: build, install, log
+- Location: ros2/
+- ROS packages: ros2/src/xarm_ros2
+- ROS launcher/build scripts: ros2/build.sh, ros2/start.sh, ros2/start_real.sh
+- ROS container files: ros2/Dockerfile, ros2/docker-compose.yml
+- ROS build artifacts: ros2/build, ros2/install, ros2/log
 
 ### Python SDK assets
 
@@ -44,13 +45,13 @@ Recommended Docker resources:
 
 ```bash
 cd /Users/svalliappan/xarm6_ws
-chmod +x build.sh start.sh start_real.sh
-./build.sh
+chmod +x ros2/build.sh ros2/start.sh ros2/start_real.sh
+./ros2/build.sh
 ```
 
 What build.sh does:
 
-1. Clones xarm_ros2 into src/xarm_ros2 if missing.
+1. Clones xarm_ros2 into ros2/src/xarm_ros2 if missing.
 2. Builds Docker image xarm6_sim.
 3. Applies ARM64-compatible xarm_gazebo patch.
 4. Runs rosdep install in container.
@@ -62,7 +63,7 @@ Start simulation (default fake mode):
 
 ```bash
 cd /Users/svalliappan/xarm6_ws
-./start.sh
+./ros2/start.sh
 ```
 
 Open browser desktop:
@@ -75,21 +76,21 @@ Auto-run ROS demo:
 
 ```bash
 cd /Users/svalliappan/xarm6_ws
-XARM_RUN_DEMO=1 ./start.sh
+XARM_RUN_DEMO=1 ./ros2/start.sh
 ```
 
 Enable gripper in demo:
 
 ```bash
 cd /Users/svalliappan/xarm6_ws
-XARM_ADD_GRIPPER=true XARM_RUN_DEMO=1 ./start.sh
+XARM_ADD_GRIPPER=true XARM_RUN_DEMO=1 ./ros2/start.sh
 ```
 
 Run real hardware launcher with safety confirmation:
 
 ```bash
 cd /Users/svalliappan/xarm6_ws
-ROBOT_IP=192.168.1.240 XARM_PHYSICAL_CONFIRM=I_UNDERSTAND_RISKS ./start_real.sh
+ROBOT_IP=192.168.1.240 XARM_PHYSICAL_CONFIRM=I_UNDERSTAND_RISKS ./ros2/start_real.sh
 ```
 
 ### Environment flags
@@ -116,8 +117,8 @@ docker ps -q --filter "name=xarm6_ws-xarm6_sim-run" | xargs -I {} docker stop {}
 Clean and rebuild ROS artifacts:
 
 ```bash
-rm -rf build install log
-./build.sh
+rm -rf ros2/build ros2/install ros2/log
+./ros2/build.sh
 ```
 
 Check noVNC endpoint:
